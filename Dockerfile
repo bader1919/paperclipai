@@ -2,6 +2,7 @@ FROM node:lts-trixie-slim AS base
 ARG USER_UID=1000
 ARG USER_GID=1000
 
+# Install system dependencies (no secrets here)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates gosu curl git wget ripgrep python3 \
     && mkdir -p -m 755 /etc/apt/keyrings \
@@ -15,7 +16,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable
 
-# Modify the existing node user/group to have the specified UID/GID to match host user
+# Modify the node user/group
 RUN usermod -u $USER_UID --non-unique node \
     && groupmod -g $USER_GID --non-unique node \
     && usermod -g $USER_GID -d /paperclip node
@@ -48,6 +49,8 @@ COPY --from=deps /app /app
 COPY . .
 RUN chown -R node:node /app
 USER node
+
+# Build your application (Coolify will inject secrets here if needed)
 RUN pnpm --filter @paperclipai/ui build
 RUN pnpm --filter @paperclipai/plugin-sdk build
 RUN pnpm --filter @paperclipai/server build && ls -la server/dist/
